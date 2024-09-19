@@ -6,34 +6,40 @@ import { isSourceFile, shouldExcludeFile } from './fileUtils';
 export function activate(context: vscode.ExtensionContext) {
     console.log('Congratulations, your extension "files-to-markdown-extractor" is now active!');
 
-    let disposable = vscode.commands.registerCommand('files-to-markdown-extractor.copyFilesAsMarkdown', async (uri: vscode.Uri) => {
-        if (!uri) {
-            vscode.window.showErrorMessage('Please select a file or folder in the explorer');
+    let disposable = vscode.commands.registerCommand('files-to-markdown-extractor.copyFilesAsMarkdown', async (uri: vscode.Uri, selectedFiles: vscode.Uri[]) => {
+        let filesToProcess: vscode.Uri[] = [];
+
+        if (selectedFiles && selectedFiles.length > 0) {
+            // Use the selected files if available
+            filesToProcess = selectedFiles;
+        } else if (uri) {
+            // Fall back to the single file/folder that was right-clicked
+            filesToProcess = [uri];
+        } else {
+            vscode.window.showErrorMessage('Please select file(s) or folder(s) in the explorer');
             return;
         }
 
         const config = getConfig();
         const fileContents: { [key: string]: string } = {};
 
-        await processFileOrFolder(uri, fileContents, config);
+        for (const fileUri of filesToProcess) {
+            await processFileOrFolder(fileUri, fileContents, config);
+        }
 
         if (Object.keys(fileContents).length === 0) {
             vscode.window.showInformationMessage('No valid files found to copy');
             return;
         }
 
-        const markdownContent = Object.keys(fileContents)
-            .map(filePath => 
-                [
-                    `# ${filePath}`, 
-                    "```", 
-                    fileContents[filePath], 
-                    "```"
-                ].join("\n")
+        const markdownContent = Object.entries(fileContents)
+            .map(([filePath, content]) => 
+                `# \`${filePath}\`\n\`\`\`\n${content}\n\`\`\``
             )
-            .join("\n");
+            .join("\n\n");
+
         await vscode.env.clipboard.writeText(markdownContent);
-        vscode.window.showInformationMessage('Files copied as JSON to clipboard');
+        vscode.window.showInformationMessage('Files copied as Markdown to clipboard');
     });
 
     context.subscriptions.push(disposable);
