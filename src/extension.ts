@@ -20,21 +20,44 @@ export function activate(context: vscode.ExtensionContext) {
         const config = getConfig();
         console.log('Configuration:', JSON.stringify(config, null, 2));
 
-        const fileContents = await processFiles(filesToProcess, config);
+        try {
+            let fileContents: { [key: string]: string } = {};
+    
+            await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: "Copying files as Markdown",
+                cancellable: true
+            }, async (progress, token) => {
+                token.onCancellationRequested(() => {
+                    console.log("User canceled the operation");
+                });
 
-        if (Object.keys(fileContents).length === 0) {
-            vscode.window.showInformationMessage('No valid files found to copy.');
-            return;
+                fileContents = await processFiles(filesToProcess, config, (current, total) => {
+                    progress.report({ increment: current / total, message: `Processing file ${current} of ${total}` });
+                    return token.isCancellationRequested;
+                });
+            });
+
+            if (Object.keys(fileContents).length === 0) {
+                vscode.window.showInformationMessage('No valid files found to copy.');
+                return;
+            }
+
+            const markdownContent = Object.entries(fileContents)
+                .map(([filePath, content]) => 
+                    `# \`${filePath}\`\n\`\`\`\n${content}\n\`\`\``
+                )
+                .join("\n\n");
+
+            await vscode.env.clipboard.writeText(markdownContent);
+            vscode.window.showInformationMessage(`Files copied as Markdown to clipboard. Total files: ${Object.keys(fileContents).length}`);
+        } catch (error) {
+            if (error === 'cancelled') {
+                vscode.window.showInformationMessage('Operation was cancelled');
+                return;
+            }
+            throw error;
         }
-
-        const markdownContent = Object.entries(fileContents)
-            .map(([filePath, content]) => 
-                `# \`${filePath}\`\n\`\`\`\n${content}\n\`\`\``
-            )
-            .join("\n\n");
-
-        await vscode.env.clipboard.writeText(markdownContent);
-        vscode.window.showInformationMessage(`Files copied as Markdown to clipboard. Total files: ${Object.keys(fileContents).length}`);
     });
 
     context.subscriptions.push(disposable);

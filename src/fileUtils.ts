@@ -66,39 +66,69 @@ async function getGitignoreForDir(dir: string): Promise<ReturnType<typeof ignore
     }
 }
 
-export async function processFiles(uris: vscode.Uri[], config: ExtensionConfig): Promise<{ [key: string]: string }> {
+export async function processFiles(
+    uris: vscode.Uri[], 
+    config: ExtensionConfig, 
+    progressCallback: (current: number, total: number) => boolean
+): Promise<{ [key: string]: string }> {
     await initializeGitignore(config);
+    
+    const allFiles = await getAllFiles(uris, config);
+    const totalFiles = allFiles.length;
+
     const fileContents: { [key: string]: string } = {};
 
-    for (const uri of uris) {
-        await processFileOrFolder(uri, fileContents, config);
+    for (let i = 0; i < allFiles.length; i++) {
+        const uri = allFiles[i];
+        if (progressCallback(i + 1, totalFiles)) {
+            throw 'cancelled';
+        }
+        await processFileOrFolder(uri, fileContents);
     }
 
     return fileContents;
 }
 
-async function processFileOrFolder(uri: vscode.Uri, fileContents: { [key: string]: string }, config: ExtensionConfig): Promise<void> {
-    const relativePath = path.relative(vscode.workspace.workspaceFolders![0].uri.fsPath, uri.fsPath);
-    console.log(`Processing: ${relativePath}`);
+function getRelativePath(uri: vscode.Uri): string {
+    return path.relative(vscode.workspace.workspaceFolders![0].uri.fsPath, uri.fsPath);
+}
+
+async function getAllFiles(uris: vscode.Uri[], config: ExtensionConfig): Promise<vscode.Uri[]> {
+    const allFiles: vscode.Uri[] = [];
+    for (const uri of uris) {
+        await collectFiles(uri, allFiles, config);
+    }
+    return allFiles;
+}
+
+async function collectFiles(uri: vscode.Uri, allFiles: vscode.Uri[], config: ExtensionConfig): Promise<void> {
+    const relativePath = getRelativePath(uri);
+    const stat = await vscode.workspace.fs.stat(uri);
 
     if (await shouldExcludeFile(relativePath, uri, config)) {
         return;
     }
 
-    const stat = await vscode.workspace.fs.stat(uri);
-
     if (stat.type === vscode.FileType.Directory) {
         const entries = await vscode.workspace.fs.readDirectory(uri);
         for (const [name, type] of entries) {
-            await processFileOrFolder(vscode.Uri.joinPath(uri, name), fileContents, config);
+            await collectFiles(vscode.Uri.joinPath(uri, name), allFiles, config);
         }
     } else if (stat.type === vscode.FileType.File) {
         if (!isSourceFile(relativePath, config)) {
             return;
         }
-
-        const content = await vscode.workspace.fs.readFile(uri);
-        fileContents[relativePath] = content.toString();
-        console.log(`Added file: ${relativePath}`);
+        if (!allFiles.some(uri => getRelativePath(uri) === relativePath)) {
+            allFiles.push(uri);
+        }
     }
+}
+
+async function processFileOrFolder(uri: vscode.Uri, fileContents: { [key: string]: string }): Promise<void> {
+    const relativePath = path.relative(vscode.workspace.workspaceFolders![0].uri.fsPath, uri.fsPath);
+    console.log(`Processing: ${relativePath}`);
+
+    const content = await vscode.workspace.fs.readFile(uri);
+    fileContents[relativePath] = content.toString();
+    console.log(`Added file: ${relativePath}`);
 }
