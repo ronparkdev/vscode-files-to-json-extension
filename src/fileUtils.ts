@@ -23,7 +23,6 @@ function isSourceFile(filePath: string, config: ExtensionConfig): boolean {
         }
         return minimatch(filePath, pattern, { matchBase: true });
     });
-    console.log(`isSourceFile: ${filePath} - ${result}`);
     return result;
 }
 
