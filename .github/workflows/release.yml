@@ -1,0 +1,59 @@
+name: Build and Release VS Code Extension
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install vsce
+      run: npm install -g @vscode/vsce
+
+    - name: Update package.json version
+      run: |
+        VERSION=${{ github.event.release.tag_name }}
+        sed -i 's/"version": ".*"/"version": "'${VERSION#v}'"/' package.json
+
+    - name: Build extension
+      run: npm run compile
+
+    - name: Package extension
+      run: vsce package
+
+    - name: Get vsix filename
+      id: get-vsix-filename
+      run: echo "VSIX_FILENAME=$(ls *.vsix)" >> $GITHUB_OUTPUT
+
+    - name: Upload vsix as artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: extension-vsix
+        path: ${{ steps.get-vsix-filename.outputs.VSIX_FILENAME }}
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./${{ steps.get-vsix-filename.outputs.VSIX_FILENAME }}
+        asset_name: ${{ steps.get-vsix-filename.outputs.VSIX_FILENAME }}
+        asset_content_type: application/octet-stream
+
+    - name: Publish to Visual Studio Marketplace
+      env:
+        VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      run: vsce publish -p $VSCE_PAT
