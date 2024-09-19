@@ -32,8 +32,14 @@ export function activate(context: vscode.ExtensionContext) {
                     console.log("User canceled the operation");
                 });
 
+                let prev = 0
                 fileContents = await processFiles(filesToProcess, config, (current, total) => {
-                    progress.report({ increment: current / total, message: `Processing file ${current} of ${total}` });
+                    const diff = current - prev
+                    prev = current
+                    progress.report({ increment: diff / total * 100, message: `Processing file ${current} of ${total}` });
+
+                    console.log({current, prev, diff, increment: diff / total * 100})
+                    
                     return token.isCancellationRequested;
                 });
             });

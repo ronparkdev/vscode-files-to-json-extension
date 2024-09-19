@@ -39,8 +39,7 @@ async function shouldExcludeFile(filePath: string, uri: vscode.Uri, config: Exte
             return true;
         }
     }
-
-    console.log(`Not excluded: ${filePath}`);
+    
     return false;
 }
 
@@ -73,7 +72,7 @@ export async function processFiles(
 ): Promise<{ [key: string]: string }> {
     await initializeGitignore(config);
     
-    const allFiles = await getAllFiles(uris, config);
+    const allFiles = await getAllFiles(uris, config, (total) => progressCallback(0, total));
     const totalFiles = allFiles.length;
 
     const fileContents: { [key: string]: string } = {};
@@ -93,15 +92,15 @@ function getRelativePath(uri: vscode.Uri): string {
     return path.relative(vscode.workspace.workspaceFolders![0].uri.fsPath, uri.fsPath);
 }
 
-async function getAllFiles(uris: vscode.Uri[], config: ExtensionConfig): Promise<vscode.Uri[]> {
+async function getAllFiles(uris: vscode.Uri[], config: ExtensionConfig, progressCallback: (total: number) => void): Promise<vscode.Uri[]> {
     const allFiles: vscode.Uri[] = [];
     for (const uri of uris) {
-        await collectFiles(uri, allFiles, config);
+        await collectFiles(uri, allFiles, config, progressCallback);
     }
     return allFiles;
 }
 
-async function collectFiles(uri: vscode.Uri, allFiles: vscode.Uri[], config: ExtensionConfig): Promise<void> {
+async function collectFiles(uri: vscode.Uri, allFiles: vscode.Uri[], config: ExtensionConfig, progressCallback: (total: number) => void): Promise<void> {
     const relativePath = getRelativePath(uri);
     const stat = await vscode.workspace.fs.stat(uri);
 
@@ -112,14 +111,16 @@ async function collectFiles(uri: vscode.Uri, allFiles: vscode.Uri[], config: Ext
     if (stat.type === vscode.FileType.Directory) {
         const entries = await vscode.workspace.fs.readDirectory(uri);
         for (const [name, type] of entries) {
-            await collectFiles(vscode.Uri.joinPath(uri, name), allFiles, config);
+            await collectFiles(vscode.Uri.joinPath(uri, name), allFiles, config, progressCallback);
         }
     } else if (stat.type === vscode.FileType.File) {
         if (!isSourceFile(relativePath, config)) {
             return;
         }
         if (!allFiles.some(uri => getRelativePath(uri) === relativePath)) {
+            console.log(`Added ${relativePath}`);
             allFiles.push(uri);
+            progressCallback(allFiles.length);
         }
     }
 }
