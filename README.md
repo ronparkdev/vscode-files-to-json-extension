@@ -1,0 +1,1 @@
+# vscode-files-to-json-extension
