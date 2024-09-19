@@ -2,6 +2,7 @@
     "name": "files-to-markdown-extractor",
     "displayName": "Files To Markdown Extractor",
     "description": "Extract files as Markdown",
+    "publisher": "RonPark",
     "repository": "https://github.com/ronparkdev/vscode-files-to-makrdown-extension",
     "version": "0.0.1",
     "engines": {
