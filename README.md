@@ -1,1 +1,1 @@
-# vscode-files-to-json-extension
+# vscode-files-to-markdown-extractor-extension

@@ -1,0 +1,118 @@
+{
+    "name": "files-to-markdown-extractor",
+    "displayName": "Files To Markdown Extractor",
+    "description": "Extract files as Markdown",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.75.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "files-to-markdown-extractor.copyFilesAsMarkdown",
+                "title": "Copy Files as MarkDown"
+            }
+        ],
+        "menus": {
+            "explorer/context": [
+                {
+                    "when": "explorerViewletVisible",
+                    "command": "files-to-markdown-extractor.copyFilesAsMarkdown",
+                    "group": "navigation"
+                }
+            ]
+        },
+        "configuration": {
+            "title": "File Markdown Extractor",
+            "properties": {
+                "filesToMarkdownExtractor.excludes": {
+                    "type": "array",
+                    "default": [
+                        "package-lock.json",
+                        "yarn.lock",
+                        "pnpm-lock.yaml",
+                        "npm-debug.log",
+                        "./**/*.lock",
+                        "./**/*.min.js",
+                        "./**/*.map",
+                        "./**/*.log",
+                        "./**/*.tmp",
+                        "./**/*.cache",
+                        "./**/*.class", 
+                        "./**/*.exe", 
+                        "./**/*.dll", 
+                        "./**/*.obj", 
+                        "./**/*.bin"
+                    ],
+                    "description": "Glob patterns to exclude files"
+                },
+                "filesToMarkdownExtractor.includes": {
+                    "type": "array",
+                    "default": [
+                        "./**/*.json",
+                        "./**/*.js",
+                        "./**/*.jsx",
+                        "./**/*.ts",
+                        "./**/*.tsx",
+                        "./**/*.py",
+                        "./**/*.java",
+                        "./**/*.c",
+                        "./**/*.cpp",
+                        "./**/*.h",
+                        "./**/*.hpp",
+                        "./**/*.cs",
+                        "./**/*.go",
+                        "./**/*.rb",
+                        "./**/*.php",
+                        "./**/*.html",
+                        "./**/*.css",
+                        "./**/*.scss",
+                        "./**/*.md",
+                        "./**/*.sh",
+                        "./**/*.sql",
+                        "./**/*.yml",
+                        "./**/*.yaml",
+                        "./**/*.env",
+                        "./**/*.rs",
+                        "./**/*.swift",
+                        "./**/*.kotlin"
+                    ],
+                    "description": "Glob patterns to include source files"
+                },
+                "filesToMarkdownExtractor.respectGitignore": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Respect .gitignore patterns when extracting files"
+                }
+            }
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "pretest": "npm run compile && npm run lint",
+        "lint": "eslint src --ext ts",
+        "test": "node ./out/test/runTest.js"
+    },
+    "devDependencies": {
+        "@types/glob": "^7.1.3",
+        "@types/minimatch": "^5.1.2",
+        "@types/node": "14.x",
+        "@types/vscode": "^1.75.0",
+        "@typescript-eslint/eslint-plugin": "^4.26.0",
+        "@typescript-eslint/parser": "^4.26.0",
+        "eslint": "^7.27.0",
+        "glob": "^7.1.7",
+        "typescript": "^4.9.5"
+    },
+    "dependencies": {
+        "ignore": "^5.1.8",
+        "minimatch": "^3.0.4"
+    },
+    "packageManager": "pnpm@9.10.0+sha512.73a29afa36a0d092ece5271de5177ecbf8318d454ecd701343131b8ebc0c1a91c487da46ab77c8e596d6acf1461e3594ced4becedf8921b074fbd8653ed7051c"
+}
