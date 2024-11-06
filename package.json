@@ -19,6 +19,14 @@
         "title": "Copy as Markdown"
       }
     ],
+    "keybindings": [
+      {
+        "command": "files-to-markdown-extractor.copyFilesAsMarkdown",
+        "key": "ctrl+alt+shift+c",
+        "mac": "cmd+alt+shift+c",
+        "when": "explorerViewletVisible && resourceLangId"
+      }
+    ],
     "menus": {
       "explorer/context": [
         {
